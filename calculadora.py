@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Calculadora Canopolis v2.4
+Calculadora Canopolis v2.5
 - MRC / M- / M+ (memoria)
 - CE (borra la entrada actual) / ON-C (borra todo)
 - %, raiz cuadrada, +/-
@@ -14,6 +14,7 @@ import operator
 import os
 import sys
 import math
+from decimal import Decimal
 
 # ---------- Motor de evaluación seguro ----------
 _OPS = {
@@ -42,16 +43,37 @@ def evaluar(expr: str) -> float:
     return _ev(nodo)
 
 
+MAX_DIGITOS = 16  # límite al ESCRIBIR un número
+
+
+def _a_texto(num) -> str:
+    """Número -> texto con su valor REAL completo, sin comas ni notación científica."""
+    if isinstance(num, float):
+        if not math.isfinite(num):
+            raise ValueError("Número fuera de rango")
+        # 15 cifras significativas: evita basura de coma flotante (0.1+0.2 = 0.3)
+        r = format(Decimal(f"{num:.15g}"), "f")
+        if "." in r:
+            r = r.rstrip("0").rstrip(".")
+        return "0" if r in ("-0", "") else r
+    return str(num)
+
+
+def _cientifica(num: float, digitos: int) -> str:
+    m, e = f"{num:.{digitos}e}".split("e")
+    if "." in m:
+        m = m.rstrip("0").rstrip(".")
+    return f"{m}e{int(e):+d}"
+
+
 def formatear(num: float) -> str:
-    num = round(num, 10)
-    if num == int(num) and abs(num) < 1e15:
-        return f"{int(num):,}"
-    s = f"{num:,.10f}".rstrip("0").rstrip(".")
-    return s
+    return formatear_token(_a_texto(num))
 
 
 def formatear_token(tok: str) -> str:
     if tok in ("", "-"):
+        return tok
+    if "e" in tok:
         return tok
     neg = tok.startswith("-")
     t = tok[1:] if neg else tok
@@ -93,7 +115,7 @@ class Calculadora(tk.Tk):
         # Pantalla de tamaño FIJO: el ancho lo marcan los botones, no el número.
         # Si la cifra no cabe, la letra se reduce automáticamente.
         self._fuente_max = 22
-        self._fuente_min = 9
+        self._fuente_min = 14
         self._fuente_pantalla = tkfont.Font(family="Consolas", size=self._fuente_max, weight="bold")
         alto_fijo = self._fuente_pantalla.metrics("linespace") + 2 * 8 + 2 * 4
         self.marco_pantalla = tk.Frame(self, height=alto_fijo, width=1, bg="#c9c9d0")
@@ -258,14 +280,14 @@ class Calculadora(tk.Tk):
                         valor = base * valor
                     except Exception:
                         pass
-                self.tokens[-1] = f"{valor:.10f}".rstrip("0").rstrip(".") or "0"
+                self.tokens[-1] = _a_texto(valor)
                 self.resultado_mostrado = False
         elif t == "√":
             tok = self.tokens[-1]
             if tok not in ("", "-"):
                 try:
                     valor = math.sqrt(float(tok))
-                    self.tokens[-1] = f"{valor:.10f}".rstrip("0").rstrip(".") or "0"
+                    self.tokens[-1] = _a_texto(valor)
                 except ValueError:
                     self._mostrar("Error")
                     return
@@ -280,7 +302,7 @@ class Calculadora(tk.Tk):
                 self._act_indicador()
             else:
                 # Primer toque: recupera lo que hay en memoria
-                self.tokens[-1] = f"{self.memoria:.10f}".rstrip("0").rstrip(".") or "0"
+                self.tokens[-1] = _a_texto(self.memoria)
         elif t == "M+":
             try:
                 self.memoria += evaluar(self._expr_python(self.tokens))
@@ -303,11 +325,16 @@ class Calculadora(tk.Tk):
             if self.resultado_mostrado:
                 self.tokens = [""]
                 self.resultado_mostrado = False
-            self.tokens[-1] += t
+            tok = self.tokens[-1]
+            if "e" in tok:
+                tok = ""
+            if sum(ch.isdigit() for ch in tok) < MAX_DIGITOS:
+                self.tokens[-1] = tok + t
         self.refrescar()
 
-    def _mostrar(self, texto):
+    def _mostrar(self, texto, num=None):
         self._texto_pantalla = texto
+        self._num_pantalla = num
         self._ajustar_pantalla()
 
     def _ajustar_pantalla(self):
@@ -321,7 +348,14 @@ class Calculadora(tk.Tk):
         while tam > self._fuente_min and self._fuente_pantalla.measure(texto) > disponible:
             tam -= 1
             self._fuente_pantalla.configure(size=tam)
-        # Si aun con la letra mínima no cabe, se muestra el final (lo último escrito)
+        # Si es un solo número y no cabe ni con la letra mínima: notación científica
+        num = getattr(self, "_num_pantalla", None)
+        if num is not None and self._fuente_pantalla.measure(texto) > disponible:
+            for d in range(15, -1, -1):
+                texto = _cientifica(num, d)
+                if self._fuente_pantalla.measure(texto) <= disponible:
+                    break
+        # Si es una operación larga y no cabe, se muestra el final (lo último escrito)
         if self._fuente_pantalla.measure(texto) > disponible:
             while len(texto) > 1 and self._fuente_pantalla.measure("…" + texto) > disponible:
                 texto = texto[1:]
@@ -352,9 +386,9 @@ class Calculadora(tk.Tk):
             return
         try:
             res = evaluar(expr)
-            self.tokens = [f"{res:.10f}".rstrip("0").rstrip(".") if res != int(res) else str(int(res))]
+            self.tokens = [_a_texto(res)]
             self.resultado_mostrado = True
-            self._mostrar(formatear(res))
+            self._mostrar(formatear(res), res)
         except ZeroDivisionError:
             self.tokens = [""]
             self._mostrar("No se puede dividir entre 0")
@@ -371,7 +405,13 @@ class Calculadora(tk.Tk):
             else:
                 partes.append(formatear_token(tok))
         texto = "".join(partes).strip() or "0"
-        self._mostrar(texto)
+        num = None
+        if len(self.tokens) == 1 and self.tokens[0] not in ("", "-"):
+            try:
+                num = float(self.tokens[0])
+            except ValueError:
+                num = None
+        self._mostrar(texto, num)
 
 
 def _activar_dpi():
