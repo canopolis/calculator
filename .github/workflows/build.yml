@@ -25,7 +25,7 @@ jobs:
       - name: Publicar Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.3-${{ github.run_number }}
-          name: Calculadora Canopolis v2.3
+          tag_name: v2.4-${{ github.run_number }}
+          name: Calculadora Canopolis v2.4
           files: dist/CalculadoraCanopolis.exe
 

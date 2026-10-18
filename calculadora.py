@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Calculadora Canopolis 2
+Calculadora Canopolis v2.4
 - MRC / M- / M+ (memoria)
 - CE (borra la entrada actual) / ON-C (borra todo)
 - %, raiz cuadrada, +/-
@@ -69,6 +69,12 @@ class Calculadora(tk.Tk):
         super().__init__()
         self.title("Calculadora Canopolis")
         self.resizable(False, False)
+        # Tamaño fijo al abrir (como la calculadora clásica de Windows)
+        self.geometry("264x486")
+        for c in range(4):
+            self.columnconfigure(c, weight=1, uniform="col")
+        for r in range(2, 9):
+            self.rowconfigure(r, weight=1, uniform="fila")
         self.configure(bg="#c9c9d0")
 
         try:
@@ -84,17 +90,17 @@ class Calculadora(tk.Tk):
 
         # Pantalla de tamaño FIJO: el ancho lo marcan los botones, no el número.
         # Si la cifra no cabe, la letra se reduce automáticamente.
-        self._fuente_max = 26
+        self._fuente_max = 22
         self._fuente_min = 9
         self._fuente_pantalla = tkfont.Font(family="Consolas", size=self._fuente_max, weight="bold")
-        alto_fijo = self._fuente_pantalla.metrics("linespace") + 2 * 16 + 2 * 4
+        alto_fijo = self._fuente_pantalla.metrics("linespace") + 2 * 8 + 2 * 4
         self.marco_pantalla = tk.Frame(self, height=alto_fijo, width=1, bg="#c9c9d0")
-        self.marco_pantalla.grid(row=0, column=0, columnspan=4, sticky="nsew", padx=10, pady=(10, 6))
+        self.marco_pantalla.grid(row=0, column=0, columnspan=4, sticky="nsew", padx=6, pady=(6, 2))
         self.marco_pantalla.grid_propagate(False)
         self.marco_pantalla.pack_propagate(False)
         self.pantalla = tk.Label(
             self.marco_pantalla, text="0", anchor="e", bg="#dfe6dd", fg="#1a1a1a",
-            font=self._fuente_pantalla, padx=14, pady=16, relief="sunken", bd=4, width=1
+            font=self._fuente_pantalla, padx=8, pady=8, relief="sunken", bd=4, width=1
         )
         self.pantalla.pack(fill="both", expand=True)
         self._texto_pantalla = "0"
@@ -114,56 +120,56 @@ class Calculadora(tk.Tk):
         ]
         for (txt, r, c, color) in botones:
             b = tk.Button(
-                self, text=txt, width=5, height=2, bg=color, fg="white", takefocus=0,
-                font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+                self, text=txt, width=1, height=1, bg=color, fg="white", takefocus=0,
+                font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
                 activebackground="#1c274a", activeforeground="white",
                 command=lambda t=txt: self.pulsar(t)
             )
-            b.grid(row=r, column=c, padx=5, pady=5, sticky="nsew")
+            b.grid(row=r, column=c, padx=3, pady=3, sticky="nsew")
 
         # Fila de +, -  y  = / C separados
         tk.Button(
-            self, text="−", width=5, height=2, bg="#2b3a67", fg="white", takefocus=0,
-            font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+            self, text="−", width=1, height=1, bg="#2b3a67", fg="white", takefocus=0,
+            font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
             activebackground="#1c274a", activeforeground="white",
             command=lambda: self.pulsar("−")
-        ).grid(row=7, column=2, padx=5, pady=5, sticky="nsew")
+        ).grid(row=7, column=2, padx=3, pady=3, sticky="nsew")
 
         tk.Button(
-            self, text="+", width=5, height=2, bg="#2b3a67", fg="white", takefocus=0,
-            font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+            self, text="+", width=1, height=1, bg="#2b3a67", fg="white", takefocus=0,
+            font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
             activebackground="#1c274a", activeforeground="white",
             command=lambda: self.pulsar("+")
-        ).grid(row=7, column=3, padx=5, pady=5, sticky="nsew")
+        ).grid(row=7, column=3, padx=3, pady=3, sticky="nsew")
 
         tk.Button(
-            self, text="(", width=5, height=2, bg="#5a5a66", fg="white", takefocus=0,
-            font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+            self, text="(", width=1, height=1, bg="#5a5a66", fg="white", takefocus=0,
+            font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
             activebackground="#1c274a", activeforeground="white",
             command=lambda: self.pulsar("(")
-        ).grid(row=7, column=0, padx=5, pady=5, sticky="nsew")
+        ).grid(row=7, column=0, padx=3, pady=3, sticky="nsew")
 
         tk.Button(
-            self, text=")", width=5, height=2, bg="#5a5a66", fg="white", takefocus=0,
-            font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+            self, text=")", width=1, height=1, bg="#5a5a66", fg="white", takefocus=0,
+            font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
             activebackground="#1c274a", activeforeground="white",
             command=lambda: self.pulsar(")")
-        ).grid(row=7, column=1, padx=5, pady=5, sticky="nsew")
+        ).grid(row=7, column=1, padx=3, pady=3, sticky="nsew")
 
         # Fila: ON/C rojo grande + =
         tk.Button(
-            self, text="ON/C", height=2, bg="#c0392b", fg="white", takefocus=0,
-            font=("Segoe UI", 13, "bold"), bd=3, relief="raised",
+            self, text="ON/C", width=1, height=1, bg="#c0392b", fg="white", takefocus=0,
+            font=("Segoe UI", 11, "bold"), bd=3, relief="raised",
             activebackground="#8e2418", activeforeground="white",
             command=lambda: self.pulsar("C")
-        ).grid(row=8, column=0, columnspan=2, padx=5, pady=(5, 10), sticky="nsew")
+        ).grid(row=8, column=0, columnspan=2, padx=3, pady=(3, 8), sticky="nsew")
 
         tk.Button(
-            self, text="=", height=2, bg="#c0392b", fg="white", takefocus=0,
-            font=("Segoe UI", 16, "bold"), bd=3, relief="raised",
+            self, text="=", width=1, height=1, bg="#c0392b", fg="white", takefocus=0,
+            font=("Segoe UI", 14, "bold"), bd=3, relief="raised",
             activebackground="#8e2418", activeforeground="white",
             command=lambda: self.pulsar("=")
-        ).grid(row=8, column=2, columnspan=2, padx=5, pady=(5, 10), sticky="nsew")
+        ).grid(row=8, column=2, columnspan=2, padx=3, pady=(3, 8), sticky="nsew")
 
         # ---- Teclado físico: enlazado a nivel global, sin depender del foco ----
         self.bind_all("<Key>", self.tecla)
@@ -304,7 +310,7 @@ class Calculadora(tk.Tk):
 
     def _ajustar_pantalla(self):
         texto = self._texto_pantalla
-        disponible = self.pantalla.winfo_width() - 2 * 14 - 2 * 4 - 4
+        disponible = self.pantalla.winfo_width() - 2 * 8 - 2 * 4 - 4
         if disponible <= 10:
             self.pantalla.config(text=texto)
             return
