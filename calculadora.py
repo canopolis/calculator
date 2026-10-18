@@ -67,6 +67,8 @@ def formatear_token(tok: str) -> str:
 class Calculadora(tk.Tk):
     def __init__(self):
         super().__init__()
+        # Medidas siempre a escala 100 %, igual que la captura de referencia
+        self.tk.call("tk", "scaling", 96 / 72)
         self.title("Calculadora Canopolis")
         self.resizable(False, False)
         # Tamaño fijo al abrir (como la calculadora clásica de Windows)
@@ -372,5 +374,18 @@ class Calculadora(tk.Tk):
         self._mostrar(texto)
 
 
+def _activar_dpi():
+    # Evita que Windows agrande la ventana con el escalado de pantalla (125 %, 150 %...)
+    try:
+        import ctypes
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    _activar_dpi()
     Calculadora().mainloop()
