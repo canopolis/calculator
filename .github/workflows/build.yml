@@ -1,0 +1,31 @@
+name: Compilar Calculadora
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar PyInstaller
+        run: pip install pyinstaller
+
+      - name: Compilar exe portatil
+        run: pyinstaller --onefile --windowed --name CalculadoraCanopolis --icon icono_escritorio.ico --add-data "icono2.ico;." calculadora.py
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.3-${{ github.run_number }}
+          name: Calculadora Canopolis v2.3
+          files: dist/CalculadoraCanopolis.exe
+
